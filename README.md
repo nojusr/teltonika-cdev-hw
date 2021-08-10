@@ -1,4 +1,4 @@
-#Teltonika C development homework
+# Teltonika C development homework
 
 ## about
 This is a daemon that would scan and sort files by category in a specified folder.
