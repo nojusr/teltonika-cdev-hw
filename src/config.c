@@ -20,7 +20,7 @@ tcdh_config_t tcdh_read_config(char *path) {
 
     const char *cfg_str_buf;
     config_setting_t *cfg_setting_buf;
-    log_write_line("Reading config\n");
+    log_write_line("Reading config....");
 
     // intialize conf structs
     tcdh_config_init(&output);
@@ -33,9 +33,6 @@ tcdh_config_t tcdh_read_config(char *path) {
 
     // read poll_interval
     config_lookup_int(&cfg, "poll_interval_sec", &output.poll_interval);
-
-    printf("poll_interval: %d\n", output.poll_interval);
-
 
     if (output.poll_interval == -1) {// err check for poll_interval
         throw_config_error(cfg, "Could not find value: poll_interval_sec\n");
@@ -52,11 +49,11 @@ tcdh_config_t tcdh_read_config(char *path) {
         throw_config_error(cfg, "Out of memory.");
     }
 
-
     if (strcmp(output.watch_dir_path, "") == 0) {// err check for dir_to_watch
         throw_config_error(cfg, "Could not find value: dir_to_watch\n");
     }
 
+    log_write_line("Done.\n");
     return output;
 
     /* TODO: Verify code below
@@ -72,7 +69,6 @@ tcdh_config_t tcdh_read_config(char *path) {
     } else {
         throw_config_error(cfg, "Could not find value: types_to_watch");
     }
-
 
     log_write_line(*log_fp, "Config read successful");
     config_destroy(&cfg);
@@ -100,9 +96,8 @@ void tcdh_config_init(tcdh_config_t *config) {
     }
 }
 
-void tcdh_print_config_debug(tcdh_config_t config) {
+void tcdh_print_config_debug(tcdh_config_t config) { // segfaults on 3rd line
     printf("config debug:\n");
-    printf("polling interval: %d", config.poll_interval);
-    printf("t2");
-    printf("dir %s", config.watch_dir_path);
+    printf("watch dir: %s\n", config.watch_dir_path);
+    printf("polling interval: %d\n", config.poll_interval);
 }
