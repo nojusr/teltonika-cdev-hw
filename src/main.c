@@ -5,7 +5,8 @@
 #include <sys/stat.h>
 #include <string.h>
 #include <sys/inotify.h>
-
+#include <sys/file.h>
+#include <errno.h>
 
 #include "consts.h"
 #include "log.h"
@@ -35,6 +36,17 @@ int main(void) {
 
 	// used for formatting log_buf.
 	char log_buf[250];
+
+	// lock check
+	int lock_file = open(LOCK_FILE_PATH, O_CREAT | O_RDWR, 0666);
+	int rc = flock(lock_file, LOCK_EX | LOCK_NB);
+
+	if (rc) {
+		if(EWOULDBLOCK == errno) {
+			printf("Another instance of this program is already running.\n");
+			return (1);
+		} 
+	}
 
 	// Create child process
 	process_id = fork();
@@ -73,7 +85,7 @@ int main(void) {
 
 	// load config
 	tcdh_config_t config = tcdh_read_config(CONF_FILE_PATH);
-	tcdh_print_config_debug(config);
+	//tcdh_print_config_debug(config);
 
 	// add config dir to watch list
 	wd = inotify_add_watch(fd, config.watch_dir_path, IN_CLOSE_WRITE | IN_CREATE);
@@ -83,7 +95,7 @@ int main(void) {
 		return (1);
 	}
 
-	// begin infinite loop
+	// begin main loop
 	while (1) {
 		length = read(fd, buffer, EVENT_BUF_LEN);
 
@@ -111,6 +123,7 @@ int main(void) {
 							snprintf(log_buf, sizeof(log_buf), "File category: %s \n", file_category_buf);
 							log_write_line(log_buf);
 
+							//TODO: de-hardcode
 							if (strcmp(file_category_buf, DOCUMENT_ID) == 0) {
 								tcdh_move_file(config, event->name, DOCUMENT_FOLDER);
 							} else if (strcmp(file_category_buf, PHOTO_ID) == 0) {

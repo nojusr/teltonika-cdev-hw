@@ -14,6 +14,9 @@ the internal name of the program, and therefore config and log filenames will be
 3. `$make`
 4. `$make install`
 
+## troubleshooting
+If the program doesn't work, the reason why can usually be found in the logfile.
+
 ## config
 The main config file of this program is to be located in `/etc/tcdh.conf`
 An example config file can be found here, as `example.conf`
