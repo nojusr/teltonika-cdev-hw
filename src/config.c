@@ -20,7 +20,7 @@ tcdh_config_t tcdh_read_config(char *path) {
 
     const char *cfg_str_buf;
     config_setting_t *cfg_setting_buf;
-    log_write_line("Reading config....");
+    log_write_line("Reading config...\n");
 
     // intialize conf structs
     tcdh_config_init(&output);
@@ -53,27 +53,34 @@ tcdh_config_t tcdh_read_config(char *path) {
         throw_config_error(cfg, "Could not find value: dir_to_watch\n");
     }
 
-    log_write_line("Done.\n");
-    return output;
 
-    /* TODO: Verify code below
+    // TODO: Verify code below
     cfg_setting_buf = config_lookup(&cfg, "types_to_watch"); // get the setting object for "types_to_watch"
     if (cfg_setting_buf != NULL) { // check if setting object was found (config_lookup returns null on bad condition)
         int cfg_array_len_buf = config_setting_length(cfg_setting_buf);
         if (cfg_array_len_buf > MAX_CATEGORY_COUNT) { // overflow check
-            throw_config_error(&cfg, "Too many category types to watch. (MAX: 4)"); // TODO: make line dynamic
+            throw_config_error(cfg, "Too many category types to watch. (MAX: 4)"); // TODO: make line dynamic
         }
+        if (cfg_array_len_buf < 1) {
+            throw_config_error(cfg, "No category to watch specified.");
+        } 
+
+
         for (int i = 0; i < cfg_array_len_buf; i++) {
-            output.types_to_watch[i] = config_setting_get_string_elem(cfg_setting_buf, i);
+            cfg_str_buf = config_setting_get_string_elem(cfg_setting_buf, i);
+            output.types_to_watch[i] = malloc(strlen(cfg_str_buf)+1);
+            strcpy(output.types_to_watch[i], cfg_str_buf);
+            log_write_line(output.types_to_watch[i]);
         }
     } else {
         throw_config_error(cfg, "Could not find value: types_to_watch");
     }
 
-    log_write_line(*log_fp, "Config read successful");
+    
+    log_write_line("Config read successful.");
     config_destroy(&cfg);
     return output;
-    */
+    
 }
 
 void throw_config_error(config_t cfg, char *err_msg) {
