@@ -76,7 +76,7 @@ int main(void)
 
 	// add config dir to watch list
 	//wd = inotify_add_watch(fd, config.watch_dir_path, IN_CLOSE_WRITE | IN_MODIFY);
-	wd = inotify_add_watch(fd, config.watch_dir_path, IN_CREATE | IN_DELETE);
+	wd = inotify_add_watch(fd, config.watch_dir_path, IN_CLOSE_WRITE | IN_MODIFY);
 
 	if (wd < 0) {
 		log_write_error("Unable to add inotify watch. Do you have access to the directory?\n");
@@ -99,20 +99,10 @@ int main(void)
 			struct inotify_event *event = ( struct inotify_event * ) &buffer[index];
 			log_write_line("Sussin.\n");
 			if ( event->len ) {
-				if ( event->mask & IN_CREATE ) {
-					if ( event->mask & IN_ISDIR ) {
-					printf( "New directory %s created.\n", event->name );
-					}
-					else {
-					printf( "New file %s created.\n", event->name );
-					}
-				}
-				else if ( event->mask & IN_DELETE ) {
-					if ( event->mask & IN_ISDIR ) {
-					printf( "Directory %s deleted.\n", event->name );
-					}
-					else {
-					printf( "File %s deleted.\n", event->name );
+				if ( event->mask & IN_CLOSE_WRITE | event->mask & IN_MODIFY ) {
+					if (!(event->mask & IN_ISDIR)) {
+						snprintf(debug, sizeof(debug), "New file %s created.\n", event->name );
+						log_write_line(debug);
 					}
 				}
 			}
@@ -120,9 +110,9 @@ int main(void)
 		}
 		index = 0;
 		memset(buffer, 0, sizeof(buffer));  
+		memset(debug, 0, sizeof(debug));
 	}
 
-	printf("FINITO.\n");
 
 	/*
 	while (1) {
