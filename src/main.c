@@ -4,6 +4,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <string.h>
+#include <sys/inotify.h>
+
 
 #include "consts.h"
 #include "log.h"
@@ -16,15 +18,26 @@ FILE *log_fp; // refer to globals.h and https://stackoverflow.com/questions/8108
 
 // main loop, where file handling logic is stored. Runs in daemon enviroment.
 // unsure if main.c is the right place to put this.
-void main_daemon_loop(char **old_filenames, char **new_filenames);
+//void main_daemon_loop(tcdh_config_t config, char **old_filenames, char **new_filenames);
 
 int main(void)
 {
+	// used when forking
 	pid_t process_id = 0;
 	pid_t sid = 0;
 
-	char **old_filenames;
-	char **new_filenames;
+	// used for inotify
+	int length = 0;
+	int index = 0;
+	int fd;
+	int wd;
+	char buffer[EVENT_BUF_LEN];
+
+	// used for formatting debug.
+	char debug[250];
+
+	//char **old_filenames = (char**) malloc(1 * sizeof(char*)); 
+	//char **new_filenames = (char**) malloc(1 * sizeof(char*));
 
 	// Create child process
 	process_id = fork();
@@ -51,14 +64,82 @@ int main(void)
     init_logger(LOG_FILE_PATH);
     log_write_line("Init complete.\n");
     tcdh_config_t config = tcdh_read_config(CONF_FILE_PATH);
-	tcdh_print_config_debug(config);
+
+	// create inotify instance
+	fd = inotify_init();
+
+	// check for error
+	if (fd < 0) {
+		log_write_error("Failed to init inotify.\n");
+		return (1);
+	}
+
+	// add config dir to watch list
+	//wd = inotify_add_watch(fd, config.watch_dir_path, IN_CLOSE_WRITE | IN_MODIFY);
+	wd = inotify_add_watch(fd, config.watch_dir_path, IN_CREATE | IN_DELETE);
+
+	if (wd < 0) {
+		log_write_error("Unable to add inotify watch. Do you have access to the directory?\n");
+		return (1);
+	}
+
+	// read
+
+	while (1) {
+		
+		length = read(fd, buffer, EVENT_BUF_LEN);
+
+		if (length < 0) {
+			log_write_error("Failed to read.\n");
+			return(1);
+		}
+
+		/*actually read return the list of change events happens. Here, read the change event one by one and process it accordingly.*/
+		while ( index < length ) {     
+			struct inotify_event *event = ( struct inotify_event * ) &buffer[index];
+			log_write_line("Sussin.\n");
+			if ( event->len ) {
+				if ( event->mask & IN_CREATE ) {
+					if ( event->mask & IN_ISDIR ) {
+					printf( "New directory %s created.\n", event->name );
+					}
+					else {
+					printf( "New file %s created.\n", event->name );
+					}
+				}
+				else if ( event->mask & IN_DELETE ) {
+					if ( event->mask & IN_ISDIR ) {
+					printf( "Directory %s deleted.\n", event->name );
+					}
+					else {
+					printf( "File %s deleted.\n", event->name );
+					}
+				}
+			}
+			index += EVENT_SIZE + event->len;
+		}
+		index = 0;
+		memset(buffer, 0, sizeof(buffer));  
+	}
+
+	printf("FINITO.\n");
+
+	/*
 	while (1) {
 		sleep(config.poll_interval);
-        main_daemon_loop(old_filenames, new_filenames);
-	}
+        main_daemon_loop(config, old_filenames, new_filenames);
+	}*/
+
+	//free(old_filenames);
+	//free(new_filenames);
+
+	inotify_rm_watch(fd, wd);
+	close(fd);
     close_logger();
 	return (0);
 }
 
-void main_daemon_loop(char **old_filenames, char **new_filenames) {
-}
+/*
+void main_daemon_loop(tcdh_config_t config, char **old_filenames, char **new_filenames) {
+	poll_for_new_files(config, old_filenames, new_filenames);
+}*/
