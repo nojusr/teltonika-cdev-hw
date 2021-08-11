@@ -17,12 +17,7 @@
 FILE *log_fp; // refer to globals.h and https://stackoverflow.com/questions/8108634/global-variables-in-header-file
 // if you see this, contact me for a better solution
 
-// main loop, where file handling logic is stored. Runs in daemon enviroment.
-// unsure if main.c is the right place to put this.
-//void main_daemon_loop(tcdh_config_t config, char **old_filenames, char **new_filenames);
-
-int main(void)
-{
+int main(void) {
 	// used for forking
 	pid_t process_id = 0;
 	pid_t sid = 0;
@@ -78,6 +73,7 @@ int main(void)
 
 	// load config
 	tcdh_config_t config = tcdh_read_config(CONF_FILE_PATH);
+	tcdh_print_config_debug(config);
 
 	// add config dir to watch list
 	wd = inotify_add_watch(fd, config.watch_dir_path, IN_CLOSE_WRITE | IN_CREATE);
@@ -96,6 +92,8 @@ int main(void)
 			return(1);
 		}
 
+		//TODO: move block below into separate function
+
 		// Read the change inotify events one-by-one and process them accordingly
 		while ( index < length ) { 
 			struct inotify_event *event = ( struct inotify_event * ) &buffer[index];
@@ -109,11 +107,9 @@ int main(void)
 
 							file_category_buf = get_file_category_by_ext(config, filename_buf);
 
-
 							memset(log_buf, 0, sizeof(log_buf));
 							snprintf(log_buf, sizeof(log_buf), "File category: %s \n", file_category_buf);
 							log_write_line(log_buf);
-
 
 							if (strcmp(file_category_buf, DOCUMENT_ID) == 0) {
 								tcdh_move_file(config, event->name, DOCUMENT_FOLDER);

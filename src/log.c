@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "globals.h"
 
-//TODO: attach timestamps to log_write_line and log_write_error
+//TODO: attach timestamps to log_write_line and similar functions
 
 void init_logger(char* path) { // stub
     printf("Initializing logger... ");
@@ -13,12 +13,13 @@ void close_logger() {
     fclose(log_fp);
 }
 
+
 void log_write_line(char *line) { // simple prototype version
     fprintf(log_fp, "[INFO] %s", line);
     fflush(log_fp);
 }
 
-void log_write_error(char *line) { // simple prototype version
+void log_write_error(char *line) { 
     fprintf(log_fp, "[ERROR] %s", line);
     fflush(log_fp);
 }

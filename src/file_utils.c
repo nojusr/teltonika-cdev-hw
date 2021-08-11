@@ -49,9 +49,9 @@ const char *get_file_category_by_ext(tcdh_config_t config, const char *extension
 void tcdh_move_file(tcdh_config_t config, char *filename, char *folder) {
     // these could probably be a lot smaller in practice, but these are also faster, mem-safe and take up 6kb total, 
     // which is marginal in most enviroments. Also, i'm too lazy to do it dynamically.
-    char oldpath[2048] = {'\0'};
-    char newpath[2048] = {'\0'};
-    char normalized_path[2048] = {'\0'};
+    char oldpath[512] = {'\0'};
+    char newpath[512] = {'\0'};
+    char normalized_path[512] = {'\0'};
 
     struct stat st = {0}; // used for dircheck
 
@@ -65,7 +65,7 @@ void tcdh_move_file(tcdh_config_t config, char *filename, char *folder) {
     // using oldpath as temporary buffer
     snprintf(oldpath, sizeof(oldpath), "%s%s", normalized_path, folder);// generate absolute folder path
     if (stat(oldpath, &st) == -1) { // if folder doesn't exist, create it.
-        mkdir(oldpath, 0777); // should figure out a better means of doing this.
+        mkdir(oldpath, 0777); // TODO: figure out how to make this folder not-as-root
     }
 
     memset(oldpath, 0, sizeof(oldpath)); // cleanup
@@ -79,9 +79,9 @@ void tcdh_move_file(tcdh_config_t config, char *filename, char *folder) {
     // do the dew
     rename(oldpath, newpath);
 
-    // log change
-    char log_buf[1024] = {'\0'};
-    snprintf(log_buf, sizeof(log_buf), "Moved `%s` to `%s`\n", oldpath, newpath);
+    // log changes
+    char log_buf[1038] = {'\0'};// size is what cc told me to change it to
+    snprintf(log_buf, sizeof(log_buf), "Moved `%s` to `%s`\n", oldpath, newpath); // Can skimp on memory for non-critical application
     log_write_line(log_buf);
 }
 

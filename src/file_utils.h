@@ -8,7 +8,7 @@ const char *get_filename_ext(const char *filename);
 // gets one of the categories as defined in consts.h from a file extension
 const char *get_file_category_by_ext(tcdh_config_t config, const char *extension);
 
-// moves files. uses standard means.
+// moves files. uses standard means. creates folder if doesn't find one.
 void tcdh_move_file(tcdh_config_t config, char *filename, char *folder);
 
 #endif /* FILE_UTILS_H */

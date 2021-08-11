@@ -28,7 +28,6 @@ tcdh_config_t tcdh_read_config(char *path) {
     config_t cfg;
 
     const char *cfg_str_buf;
-    config_setting_t *cfg_setting_buf;
     log_write_line("Reading config...\n");
 
     // intialize conf structs
@@ -39,14 +38,6 @@ tcdh_config_t tcdh_read_config(char *path) {
     if (!config_read_file(&cfg, path)) {
         printf("%s, %s:%d - %s\n", "Failed to read config file:", config_error_file(&cfg),config_error_line(&cfg), config_error_text(&cfg));
         throw_config_error(cfg, "Failed to read config file.");
-    }
-
-    // read poll_interval
-    config_lookup_int(&cfg, "poll_interval_sec", &output.poll_interval);
-
-    // err check for poll_interval
-    if (output.poll_interval == -1) {
-        throw_config_error(cfg, "Could not find value: poll_interval_sec\n");
     }
 
     // read dir_to_watch
@@ -63,27 +54,6 @@ tcdh_config_t tcdh_read_config(char *path) {
     if (strcmp(output.watch_dir_path, "") == 0) {// err check for dir_to_watch
         throw_config_error(cfg, "Could not find value: dir_to_watch\n");
     }
-
-    /*
-    // read types_to_watch
-    cfg_setting_buf = config_lookup(&cfg, "types_to_watch"); // get the setting object for "types_to_watch"
-    if (cfg_setting_buf != NULL) { // check if setting object was found (config_lookup returns null on bad condition)
-        int cfg_array_len_buf = config_setting_length(cfg_setting_buf);
-        if (cfg_array_len_buf > MAX_CATEGORY_COUNT) { // overflow check
-            throw_config_error(cfg, "Too many category types to watch. (MAX: 4)"); // TODO: make line dynamic
-        } else if (cfg_array_len_buf < 1) { // underflow check
-            throw_config_error(cfg, "No category to watch specified.");
-        }
-
-        for (int i = 0; i < cfg_array_len_buf; i++) { // for every item in array,
-            cfg_str_buf = config_setting_get_string_elem(cfg_setting_buf, i); // get const char*
-            // convert to char*
-            output.types_to_watch[i] = malloc(strlen(cfg_str_buf)+1);
-            strcpy(output.types_to_watch[i], cfg_str_buf);
-        }
-    } else {
-        throw_config_error(cfg, "Could not find value: types_to_watch");
-    }*/
 
     // dependant on MAX_CATEGORY_COUNT, will need to de-hardcode later.
     tcdh_config_read_category(cfg, DOCUMENT_ID, output.document_types);
@@ -110,7 +80,6 @@ void tcdh_config_read_category(config_t cfg, char *type, char *output[MAX_FILETY
     char err_msg[500] = ""; // too much work to make dynamic, increase size if error messages begin cutting out.
 
     snprintf(path, sizeof(path), "%s_types", type);
-    //log_write_debug(path);
 
     const char *cfg_str_buf;
     config_setting_t *cfg_setting_buf;
@@ -138,7 +107,6 @@ void tcdh_config_read_category(config_t cfg, char *type, char *output[MAX_FILETY
 }
 
 void tcdh_config_init(tcdh_config_t *config) { 
-    config->poll_interval = -1;
     config->watch_dir_path = "";
 
     for (int i = 0; i < MAX_FILETYPES_CAT; i++){
@@ -153,17 +121,6 @@ void tcdh_print_config_debug(tcdh_config_t config) {
     printf("----------------------------\n");
     printf("config debug:\n");
     printf("watch dir: %s\n", config.watch_dir_path);
-    printf("polling interval: %d\n", config.poll_interval);
-    
-    /*
-    printf("types_to_watch: \n");
-    for (int i = 0; i < MAX_CATEGORY_COUNT; i++) { 
-        printf("%s\n", config.types_to_watch[i]);
-        // TODO: verify that check below won't break with 3 categories
-        if (config.types_to_watch[i+1] == NULL || strcmp(config.types_to_watch[i+1], "") == 0) { 
-            break;
-        }
-    }*/
 
     printf("%s:\n", AUDIO_ID);
     tcdh_print_str_arr_debug(config.audio_types);
