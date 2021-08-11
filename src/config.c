@@ -17,11 +17,15 @@ void throw_config_error(config_t cfg, char *err_msg);
 // initializes variables of type `tcdh_config_t`. internal use only, i think. might be useful in main scope.
 void tcdh_config_init(tcdh_config_t *config);
 
+void tcdh_config_read_directory(config_t cfg, char *path, char **output);
+
 // reads all possible filetypes for a category. internal use only.
 void tcdh_config_read_category(config_t cfg, char *type, char *output[MAX_FILETYPES_CAT]); 
 
 // prints a string array. used in tcdh_config_print_debug.
 void tcdh_print_str_arr_debug(char *array[MAX_FILETYPES_CAT]);
+
+
 
 tcdh_config_t tcdh_read_config(char *path) {
     tcdh_config_t output;
@@ -54,6 +58,12 @@ tcdh_config_t tcdh_read_config(char *path) {
     if (strcmp(output.watch_dir_path, "") == 0) {// err check for dir_to_watch
         throw_config_error(cfg, "Could not find value: dir_to_watch\n");
     }
+
+    // read directories
+    tcdh_config_read_directory(cfg, "document_dir", &output.document_dir);
+    tcdh_config_read_directory(cfg, "audio_dir", &output.audio_dir);
+    tcdh_config_read_directory(cfg, "video_dir", &output.video_dir);
+    tcdh_config_read_directory(cfg, "photo_dir", &output.photo_dir);  
 
     // dependant on MAX_CATEGORY_COUNT, will need to de-hardcode later.
     tcdh_config_read_category(cfg, DOCUMENT_ID, output.document_types);
@@ -108,6 +118,10 @@ void tcdh_config_read_category(config_t cfg, char *type, char *output[MAX_FILETY
 
 void tcdh_config_init(tcdh_config_t *config) { 
     config->watch_dir_path = "";
+    config->document_dir = "";
+    config->audio_dir = "";
+    config->video_dir = "";
+    config->photo_dir = "";
 
     for (int i = 0; i < MAX_FILETYPES_CAT; i++){
         config->audio_types[i] = "";
@@ -117,10 +131,37 @@ void tcdh_config_init(tcdh_config_t *config) {
     }
 }
 
+void tcdh_config_read_directory(config_t cfg, char *path, char **output) {
+    const char *cfg_str_buf;
+    // read dir_to_watch
+
+    config_lookup_string(&cfg, path, &cfg_str_buf);
+
+    *output = malloc(strlen(cfg_str_buf)+1);
+    if (*output) {
+        strcpy(*output, cfg_str_buf);
+        printf("success: %s\n", *output);
+    } else {
+        throw_config_error(cfg, "Out of memory.");
+    }
+
+    if (strcmp(*output, "") == 0) {// err check for dir_to_watch
+        char dbg_str[128] = {'\0'};
+        snprintf(dbg_str, sizeof(dbg_str), "Could not find value: %s\n", path);
+        throw_config_error(cfg, dbg_str);
+    }
+
+    cfg_str_buf = ""; // cleanup
+}
+
 void tcdh_print_config_debug(tcdh_config_t config) {
     printf("----------------------------\n");
     printf("config debug:\n");
     printf("watch dir: %s\n", config.watch_dir_path);
+    printf("doc dir: %s\n", config.document_dir);
+    printf("vid dir: %s\n", config.video_dir);
+    printf("audio dir: %s\n", config.audio_dir);
+    printf("photo dir: %s\n", config.photo_dir);
 
     printf("%s:\n", AUDIO_ID);
     tcdh_print_str_arr_debug(config.audio_types);

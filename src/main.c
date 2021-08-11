@@ -87,6 +87,7 @@ int main(void) {
 	tcdh_config_t config = tcdh_read_config(CONF_FILE_PATH);
 	//tcdh_print_config_debug(config);
 
+
 	// add config dir to watch list
 	wd = inotify_add_watch(fd, config.watch_dir_path, IN_CLOSE_WRITE | IN_CREATE);
 
@@ -125,13 +126,13 @@ int main(void) {
 
 							//TODO: de-hardcode
 							if (strcmp(file_category_buf, DOCUMENT_ID) == 0) {
-								tcdh_move_file(config, event->name, DOCUMENT_FOLDER);
+								tcdh_move_file(config, event->name, config.document_dir);
 							} else if (strcmp(file_category_buf, PHOTO_ID) == 0) {
-								tcdh_move_file(config, event->name, PHOTO_FOLDER);
+								tcdh_move_file(config, event->name, config.photo_dir);
 							} else if (strcmp(file_category_buf, VIDEO_ID) == 0) {
-								tcdh_move_file(config, event->name, VIDEO_FOLDER);
+								tcdh_move_file(config, event->name, config.video_dir);
 							} else if (strcmp(file_category_buf, AUDIO_ID) == 0) {
-								tcdh_move_file(config, event->name, AUDIO_FOLDER);
+								tcdh_move_file(config, event->name, config.audio_dir);
 							} 					
 						}
 					}

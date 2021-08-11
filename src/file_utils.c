@@ -52,6 +52,7 @@ void tcdh_move_file(tcdh_config_t config, char *filename, char *folder) {
     char oldpath[512] = {'\0'};
     char newpath[512] = {'\0'};
     char normalized_path[512] = {'\0'};
+    char normalized_folder[512] = {'\0'};
 
     struct stat st = {0}; // used for dircheck
 
@@ -62,19 +63,24 @@ void tcdh_move_file(tcdh_config_t config, char *filename, char *folder) {
         snprintf(normalized_path, sizeof(normalized_path), "%s/", config.watch_dir_path);
     }
 
-    // using oldpath as temporary buffer
-    snprintf(oldpath, sizeof(oldpath), "%s%s", normalized_path, folder);// generate absolute folder path
-    if (stat(oldpath, &st) == -1) { // if folder doesn't exist, create it.
-        mkdir(oldpath, 0777); // TODO: figure out how to make this folder not-as-root
+    // add trailing slash to output folder
+    if (folder[strlen(folder)-1] == '/') {
+        snprintf(normalized_folder, sizeof(normalized_folder), "%s", folder);
+    } else {
+        snprintf(normalized_folder, sizeof(normalized_folder), "%s/", folder);
     }
 
-    memset(oldpath, 0, sizeof(oldpath)); // cleanup
-    
+    // using oldpath as temporary buffer
+    //snprintf(oldpath, sizeof(oldpath), "%s%s", normalized_path, folder);// generate absolute folder path
+    if (stat(normalized_folder, &st) == -1) { // if folder doesn't exist, create it.
+        mkdir(normalized_folder, 0777); // TODO: figure out how to make this folder not-as-root
+    }
+
     // get oldpath
     snprintf(oldpath, sizeof(oldpath), "%s%s", normalized_path,filename);
     
     // get newpath
-    snprintf(newpath, sizeof(newpath), "%s%s%s", normalized_path,folder,filename);
+    snprintf(newpath, sizeof(newpath), "%s%s", normalized_folder,filename);
 
     // do the dew
     rename(oldpath, newpath);
