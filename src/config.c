@@ -35,6 +35,7 @@ tcdh_config_t tcdh_read_config(char *path) {
     tcdh_config_init(&output);
     config_init(&cfg);
 
+    // err check for whole file.
     if (!config_read_file(&cfg, path)) {
         printf("%s, %s:%d - %s\n", "Failed to read config file:", config_error_file(&cfg),config_error_line(&cfg), config_error_text(&cfg));
         throw_config_error(cfg, "Failed to read config file.");
@@ -43,7 +44,8 @@ tcdh_config_t tcdh_read_config(char *path) {
     // read poll_interval
     config_lookup_int(&cfg, "poll_interval_sec", &output.poll_interval);
 
-    if (output.poll_interval == -1) {// err check for poll_interval
+    // err check for poll_interval
+    if (output.poll_interval == -1) {
         throw_config_error(cfg, "Could not find value: poll_interval_sec\n");
     }
 
@@ -82,12 +84,11 @@ tcdh_config_t tcdh_read_config(char *path) {
         throw_config_error(cfg, "Could not find value: types_to_watch");
     }
 
-
     // dependant on MAX_CATEGORY_COUNT, will need to de-hardcode later.
-    tcdh_config_read_category(cfg, "document", output.document_types);
-    tcdh_config_read_category(cfg, "audio", output.audio_types);
-    tcdh_config_read_category(cfg, "video", output.video_types);
-    tcdh_config_read_category(cfg, "photo", output.photo_types);
+    tcdh_config_read_category(cfg, DOCUMENT_ID, output.document_types);
+    tcdh_config_read_category(cfg, AUDIO_ID, output.audio_types);
+    tcdh_config_read_category(cfg, VIDEO_ID, output.video_types);
+    tcdh_config_read_category(cfg, PHOTO_ID, output.photo_types);
    
     log_write_line("Config read successful.\n");
     config_destroy(&cfg);
@@ -104,7 +105,7 @@ void throw_config_error(config_t cfg, char *err_msg) {
 } 
 
 void tcdh_config_read_category(config_t cfg, char *type, char *output[MAX_FILETYPES_CAT]) {
-    char path[100] = ""; // no point in making this dynamic yet, this does need a hard limit specified in consts.h
+    char path[100] = ""; // no point in making this dynamic yet, though this does need a hard limit specified in consts.h
     char err_msg[500] = ""; // too much work to make dynamic, increase size if error messages begin cutting out.
 
     snprintf(path, sizeof(path), "%s_types", type);
@@ -126,9 +127,8 @@ void tcdh_config_read_category(config_t cfg, char *type, char *output[MAX_FILETY
 
         for (int i = 0; i < cfg_array_len_buf; i++) { // for every item in array,
             cfg_str_buf = config_setting_get_string_elem(cfg_setting_buf, i); // get const char*
-            // convert to char*
-            output[i] = malloc(strlen(cfg_str_buf)+1);
-            strcpy(output[i], cfg_str_buf);
+            output[i] = malloc(strlen(cfg_str_buf)+1); // convert to char*
+            strcpy(output[i], cfg_str_buf); // strcpy to output.
         }
     } else {
         snprintf(err_msg, sizeof(err_msg), "Could not find value: %s\n", path);
@@ -162,13 +162,13 @@ void tcdh_print_config_debug(tcdh_config_t config) {
         }
     }
 
-    printf("audio_types:\n");
+    printf("%s:\n", AUDIO_ID);
     tcdh_print_str_arr_debug(config.audio_types);
-    printf("video_types:\n");
+    printf("%s:\n", VIDEO_ID);
     tcdh_print_str_arr_debug(config.video_types);
-    printf("photo_types:\n");
+    printf("%s:\n", PHOTO_ID);
     tcdh_print_str_arr_debug(config.photo_types);
-    printf("document_types:\n");
+    printf("%s:\n", DOCUMENT_ID);
     tcdh_print_str_arr_debug(config.document_types);       
     printf("----------------------------\n");
 }

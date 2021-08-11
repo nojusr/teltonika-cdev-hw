@@ -2,6 +2,7 @@
 #define TYPES_H
 #include "consts.h"
 
+// main config struct
 typedef struct tcdh_config_t {
     int poll_interval;
     char *watch_dir_path;
