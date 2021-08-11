@@ -44,6 +44,7 @@ int main(void)
     init_logger(LOG_FILE_PATH);
     log_write_line("Init complete.\n");
     tcdh_config_t config = tcdh_read_config(CONF_FILE_PATH);
+	tcdh_print_config_debug(config);
 	while (1) {
 		sleep(config.poll_interval);
         log_write_line("Hello!\n");

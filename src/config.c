@@ -14,11 +14,14 @@
 // logs an error message, closes the config file and exits the program. internal use only
 void throw_config_error(config_t cfg, char *err_msg);
 
-// initializes variables of type `tcdh_config_t`. internal use only, i think. might be useful in main scope.1
+// initializes variables of type `tcdh_config_t`. internal use only, i think. might be useful in main scope.
 void tcdh_config_init(tcdh_config_t *config);
 
 // reads all possible filetypes for a category. internal use only.
 void tcdh_config_read_category(config_t cfg, char *type, char *output[MAX_FILETYPES_CAT]); 
+
+// prints a string array. used in tcdh_config_print_debug.
+void tcdh_print_str_arr_debug(char *array[MAX_FILETYPES_CAT]);
 
 tcdh_config_t tcdh_read_config(char *path) {
     tcdh_config_t output;
@@ -105,7 +108,7 @@ void tcdh_config_read_category(config_t cfg, char *type, char *output[MAX_FILETY
     char err_msg[500] = ""; // too much work to make dynamic, increase size if error messages begin cutting out.
 
     snprintf(path, sizeof(path), "%s_types", type);
-    log_write_debug(path);
+    //log_write_debug(path);
 
     const char *cfg_str_buf;
     config_setting_t *cfg_setting_buf;
@@ -126,7 +129,6 @@ void tcdh_config_read_category(config_t cfg, char *type, char *output[MAX_FILETY
             // convert to char*
             output[i] = malloc(strlen(cfg_str_buf)+1);
             strcpy(output[i], cfg_str_buf);
-            printf("%s", output[i]);
         }
     } else {
         snprintf(err_msg, sizeof(err_msg), "Could not find value: %s\n", path);
@@ -146,8 +148,37 @@ void tcdh_config_init(tcdh_config_t *config) {
     }
 }
 
-void tcdh_print_config_debug(tcdh_config_t config) { // segfaults on 3rd line
+void tcdh_print_config_debug(tcdh_config_t config) {
+    printf("----------------------------\n");
     printf("config debug:\n");
     printf("watch dir: %s\n", config.watch_dir_path);
     printf("polling interval: %d\n", config.poll_interval);
+    printf("types_to_watch: \n");
+    for (int i = 0; i < MAX_CATEGORY_COUNT; i++) { 
+        printf("%s\n", config.types_to_watch[i]);
+        // TODO: verify that check below won't break with 3 categories
+        if (config.types_to_watch[i+1] == NULL || strcmp(config.types_to_watch[i+1], "") == 0) { 
+            break;
+        }
+    }
+
+    printf("audio_types:\n");
+    tcdh_print_str_arr_debug(config.audio_types);
+    printf("video_types:\n");
+    tcdh_print_str_arr_debug(config.video_types);
+    printf("photo_types:\n");
+    tcdh_print_str_arr_debug(config.photo_types);
+    printf("document_types:\n");
+    tcdh_print_str_arr_debug(config.document_types);       
+    printf("----------------------------\n");
+}
+
+void tcdh_print_str_arr_debug(char *array[MAX_FILETYPES_CAT]) {
+    for (int i = 0; i < MAX_FILETYPES_CAT; i++) {
+        printf("%s\n", array[i]);
+        // TODO: verify that check below won't break with MAX_FILETYPES_CAT-1 items
+        if (array[i+1] == NULL || strcmp(array[i+1], "") == 0) {
+            break;
+        }
+    }
 }

@@ -1,5 +1,6 @@
 #ifndef GLOBALS_H
 #define GLOBALS_H
+#include <stdio.h>
 
 extern FILE *log_fp; // global log file pointer, unsure if this is the right way to go about providing global logging access
 
