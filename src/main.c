@@ -12,6 +12,7 @@
 #include "types.h"
 #include "config.h"
 #include "globals.h"
+#include "file_utils.h"
 
 FILE *log_fp; // refer to globals.h and https://stackoverflow.com/questions/8108634/global-variables-in-header-file
 // if you see this, contact me for a better solution
@@ -32,6 +33,10 @@ int main(void)
 	int fd;
 	int wd;
 	char buffer[EVENT_BUF_LEN];
+
+	// bufvars
+	const char *filename_buf;
+	const char *file_category_buf;
 
 	// used for formatting debug.
 	char debug[250];
@@ -97,12 +102,34 @@ int main(void)
 		/*actually read return the list of change events happens. Here, read the change event one by one and process it accordingly.*/
 		while ( index < length ) {     
 			struct inotify_event *event = ( struct inotify_event * ) &buffer[index];
-			log_write_line("Sussin.\n");
 			if ( event->len ) {
-				if ( event->mask & IN_CLOSE_WRITE | event->mask & IN_MODIFY ) {
+				if ( event->mask & IN_CLOSE_WRITE || event->mask & IN_MODIFY ) {
 					if (!(event->mask & IN_ISDIR)) {
-						snprintf(debug, sizeof(debug), "New file %s created.\n", event->name );
-						log_write_line(debug);
+						filename_buf = get_filename_ext(event->name);
+						if (filename_buf && filename_buf[0] != '\0') {
+							snprintf(debug, sizeof(debug), "New file %s detected. %s\n", event->name, filename_buf);
+							log_write_line(debug);
+
+							memset(debug, 0, sizeof(debug));
+							snprintf(debug, sizeof(debug), "File category: %s \n", get_file_category_by_ext(config, filename_buf));
+							log_write_line(debug);
+
+							
+							switch (get_file_category_by_ext(config, filename_buf)) {
+								case AUDIO_ID:
+									tcdh_move_file(config, event->name, AUDIO_FOLDER);
+									break;
+								case VIDEO_ID:
+									tcdh_move_file(config, event->name, VIDEO_FOLDER);
+									break;
+								case DOCUMENT_ID:
+									tcdh_move_file(config, event->name, DOCUMENT_FOLDER);
+									break;
+								case PHOTO_ID:
+									tcdh_move_file(config, event->name, PHOTO_FOLDER);
+							}
+						
+						}
 					}
 				}
 			}
