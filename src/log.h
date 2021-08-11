@@ -9,4 +9,6 @@ void log_write_line(char* line);
 
 void log_write_error(char* line);
 
+void log_write_debug(char* line);
+
 #endif /*LOG_H*/

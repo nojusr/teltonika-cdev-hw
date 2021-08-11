@@ -11,8 +11,14 @@
 #include "log.h"
 #include "globals.h"
 
-void throw_config_error(config_t cfg, char *err_msg);// logs an error message, closes the config file and exits the program. internal use only
-void tcdh_config_init(tcdh_config_t *config);// initializes variables of type `tcdh_config_t`. internal use only, i think. might be useful in main scope.
+// logs an error message, closes the config file and exits the program. internal use only
+void throw_config_error(config_t cfg, char *err_msg);
+
+// initializes variables of type `tcdh_config_t`. internal use only, i think. might be useful in main scope.1
+void tcdh_config_init(tcdh_config_t *config);
+
+// reads all possible filetypes for a category. internal use only.
+void tcdh_config_read_category(config_t cfg, char *type, char *output[MAX_FILETYPES_CAT]); 
 
 tcdh_config_t tcdh_read_config(char *path) {
     tcdh_config_t output;
@@ -53,43 +59,80 @@ tcdh_config_t tcdh_read_config(char *path) {
         throw_config_error(cfg, "Could not find value: dir_to_watch\n");
     }
 
-
-    // TODO: Verify code below
+    // read types_to_watch
     cfg_setting_buf = config_lookup(&cfg, "types_to_watch"); // get the setting object for "types_to_watch"
     if (cfg_setting_buf != NULL) { // check if setting object was found (config_lookup returns null on bad condition)
         int cfg_array_len_buf = config_setting_length(cfg_setting_buf);
         if (cfg_array_len_buf > MAX_CATEGORY_COUNT) { // overflow check
             throw_config_error(cfg, "Too many category types to watch. (MAX: 4)"); // TODO: make line dynamic
-        }
-        if (cfg_array_len_buf < 1) {
+        } else if (cfg_array_len_buf < 1) { // underflow check
             throw_config_error(cfg, "No category to watch specified.");
-        } 
+        }
 
-
-        for (int i = 0; i < cfg_array_len_buf; i++) {
-            cfg_str_buf = config_setting_get_string_elem(cfg_setting_buf, i);
+        for (int i = 0; i < cfg_array_len_buf; i++) { // for every item in array,
+            cfg_str_buf = config_setting_get_string_elem(cfg_setting_buf, i); // get const char*
+            // convert to char*
             output.types_to_watch[i] = malloc(strlen(cfg_str_buf)+1);
             strcpy(output.types_to_watch[i], cfg_str_buf);
-            log_write_line(output.types_to_watch[i]);
         }
     } else {
         throw_config_error(cfg, "Could not find value: types_to_watch");
     }
 
-    
-    log_write_line("Config read successful.");
+
+    // dependant on MAX_CATEGORY_COUNT, will need to de-hardcode later.
+    tcdh_config_read_category(cfg, "document", output.document_types);
+    tcdh_config_read_category(cfg, "audio", output.audio_types);
+    tcdh_config_read_category(cfg, "video", output.video_types);
+    tcdh_config_read_category(cfg, "photo", output.photo_types);
+   
+    log_write_line("Config read successful.\n");
     config_destroy(&cfg);
     return output;
     
 }
 
 void throw_config_error(config_t cfg, char *err_msg) {
-    printf("throwing error: %s", err_msg);
+    printf("Fatal error: %s", err_msg);
     log_write_error(err_msg);
     config_destroy(&cfg);
     close_logger();
     exit(EXIT_FAILURE); // should probably exit more gracefully
 } 
+
+void tcdh_config_read_category(config_t cfg, char *type, char *output[MAX_FILETYPES_CAT]) {
+    char path[100] = ""; // no point in making this dynamic yet, this does need a hard limit specified in consts.h
+    char err_msg[500] = ""; // too much work to make dynamic, increase size if error messages begin cutting out.
+
+    snprintf(path, sizeof(path), "%s_types", type);
+    log_write_debug(path);
+
+    const char *cfg_str_buf;
+    config_setting_t *cfg_setting_buf;
+
+    cfg_setting_buf = config_lookup(&cfg, path);
+    if (cfg_setting_buf != NULL) {
+        int cfg_array_len_buf = config_setting_length(cfg_setting_buf);
+        if (cfg_array_len_buf > MAX_FILETYPES_CAT) { // overflow check
+            snprintf(err_msg, sizeof(err_msg), "Too many values in %s, (MAX: %d)\n", path, MAX_FILETYPES_CAT);
+            throw_config_error(cfg, err_msg);
+        } if (cfg_array_len_buf < 1) {
+            snprintf(err_msg, sizeof(err_msg), "Found 0 values in: %s\n", path);
+            log_write_line(err_msg);
+        }
+
+        for (int i = 0; i < cfg_array_len_buf; i++) { // for every item in array,
+            cfg_str_buf = config_setting_get_string_elem(cfg_setting_buf, i); // get const char*
+            // convert to char*
+            output[i] = malloc(strlen(cfg_str_buf)+1);
+            strcpy(output[i], cfg_str_buf);
+            printf("%s", output[i]);
+        }
+    } else {
+        snprintf(err_msg, sizeof(err_msg), "Could not find value: %s\n", path);
+        log_write_line(err_msg);
+    }    
+}
 
 void tcdh_config_init(tcdh_config_t *config) { 
     config->poll_interval = -1;

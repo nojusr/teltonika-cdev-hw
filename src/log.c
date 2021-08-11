@@ -22,3 +22,8 @@ void log_write_error(char *line) { // simple prototype version
     fprintf(log_fp, "[ERROR] %s", line);
     fflush(log_fp);
 }
+
+void log_write_debug(char *line) {
+    fprintf(log_fp, "[DEBUG] %s", line);
+    fflush(log_fp);
+}
