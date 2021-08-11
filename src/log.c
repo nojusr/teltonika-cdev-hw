@@ -4,9 +4,9 @@
 //TODO: attach timestamps to log_write_line and log_write_error
 
 void init_logger(char* path) { // stub
-    printf("Initializing logger....");
+    printf("Initializing logger... ");
 	log_fp = fopen(path, "w+");
-    printf("Done. Logfile is in /var/tcdh.log\n");
+    printf("Done.\nLogfile can be found in /var/tcdh.log\n");
 }
 
 void close_logger() {

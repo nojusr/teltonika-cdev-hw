@@ -23,7 +23,7 @@ FILE *log_fp; // refer to globals.h and https://stackoverflow.com/questions/8108
 
 int main(void)
 {
-	// used when forking
+	// used for forking
 	pid_t process_id = 0;
 	pid_t sid = 0;
 
@@ -38,22 +38,19 @@ int main(void)
 	const char *filename_buf;
 	const char *file_category_buf;
 
-	// used for formatting debug.
-	char debug[250];
-
-	//char **old_filenames = (char**) malloc(1 * sizeof(char*)); 
-	//char **new_filenames = (char**) malloc(1 * sizeof(char*));
+	// used for formatting log_buf.
+	char log_buf[250];
 
 	// Create child process
 	process_id = fork();
 	// Indication of fork() failure
 	if (process_id < 0) {
-		printf("fork failed!\n");
+		printf("Fork failed!\n");
 		exit(1);
 	}
 	// PARENT PROCESS. Need to kill it.
 	if (process_id > 0) {
-		printf("process_id of child process %d \n", process_id);
+		printf("PID of child process: %d\n", process_id);
 		exit(0);
 	}
 	//unmask the file mode
@@ -66,32 +63,32 @@ int main(void)
 	// Change the current working directory to root.
 	chdir("/");
 
-    init_logger(LOG_FILE_PATH);
-    log_write_line("Init complete.\n");
-    tcdh_config_t config = tcdh_read_config(CONF_FILE_PATH);
-
 	// create inotify instance
 	fd = inotify_init();
 
 	// check for error
 	if (fd < 0) {
-		log_write_error("Failed to init inotify.\n");
+		printf("Failed to init inotify.\n");
 		return (1);
 	}
 
+	// init logging
+	init_logger(LOG_FILE_PATH);
+    log_write_line("Init complete.\n");
+
+	// load config
+	tcdh_config_t config = tcdh_read_config(CONF_FILE_PATH);
+
 	// add config dir to watch list
-	//wd = inotify_add_watch(fd, config.watch_dir_path, IN_CLOSE_WRITE | IN_MODIFY);
-	wd = inotify_add_watch(fd, config.watch_dir_path, IN_CLOSE_WRITE | IN_MODIFY);
+	wd = inotify_add_watch(fd, config.watch_dir_path, IN_CLOSE_WRITE | IN_CREATE);
 
 	if (wd < 0) {
 		log_write_error("Unable to add inotify watch. Do you have access to the directory?\n");
 		return (1);
 	}
 
-	// read
-
+	// begin infinite loop
 	while (1) {
-		
 		length = read(fd, buffer, EVENT_BUF_LEN);
 
 		if (length < 0) {
@@ -99,64 +96,49 @@ int main(void)
 			return(1);
 		}
 
-		/*actually read return the list of change events happens. Here, read the change event one by one and process it accordingly.*/
-		while ( index < length ) {     
+		// Read the change inotify events one-by-one and process them accordingly
+		while ( index < length ) { 
 			struct inotify_event *event = ( struct inotify_event * ) &buffer[index];
 			if ( event->len ) {
 				if ( event->mask & IN_CLOSE_WRITE || event->mask & IN_MODIFY ) {
 					if (!(event->mask & IN_ISDIR)) {
 						filename_buf = get_filename_ext(event->name);
 						if (filename_buf && filename_buf[0] != '\0') {
-							snprintf(debug, sizeof(debug), "New file %s detected. %s\n", event->name, filename_buf);
-							log_write_line(debug);
+							snprintf(log_buf, sizeof(log_buf), "New file: `%s` Extension: %s\n", event->name, filename_buf);
+							log_write_line(log_buf);
 
-							memset(debug, 0, sizeof(debug));
-							snprintf(debug, sizeof(debug), "File category: %s \n", get_file_category_by_ext(config, filename_buf));
-							log_write_line(debug);
+							file_category_buf = get_file_category_by_ext(config, filename_buf);
 
-							
-							switch (get_file_category_by_ext(config, filename_buf)) {
-								case AUDIO_ID:
-									tcdh_move_file(config, event->name, AUDIO_FOLDER);
-									break;
-								case VIDEO_ID:
-									tcdh_move_file(config, event->name, VIDEO_FOLDER);
-									break;
-								case DOCUMENT_ID:
-									tcdh_move_file(config, event->name, DOCUMENT_FOLDER);
-									break;
-								case PHOTO_ID:
-									tcdh_move_file(config, event->name, PHOTO_FOLDER);
-							}
-						
+
+							memset(log_buf, 0, sizeof(log_buf));
+							snprintf(log_buf, sizeof(log_buf), "File category: %s \n", file_category_buf);
+							log_write_line(log_buf);
+
+
+							if (strcmp(file_category_buf, DOCUMENT_ID) == 0) {
+								tcdh_move_file(config, event->name, DOCUMENT_FOLDER);
+							} else if (strcmp(file_category_buf, PHOTO_ID) == 0) {
+								tcdh_move_file(config, event->name, PHOTO_FOLDER);
+							} else if (strcmp(file_category_buf, VIDEO_ID) == 0) {
+								tcdh_move_file(config, event->name, VIDEO_FOLDER);
+							} else if (strcmp(file_category_buf, AUDIO_ID) == 0) {
+								tcdh_move_file(config, event->name, AUDIO_FOLDER);
+							} 					
 						}
 					}
 				}
 			}
 			index += EVENT_SIZE + event->len;
 		}
+
+		// clear out buffers and indices
 		index = 0;
 		memset(buffer, 0, sizeof(buffer));  
-		memset(debug, 0, sizeof(debug));
+		memset(log_buf, 0, sizeof(log_buf));
 	}
-
-
-	/*
-	while (1) {
-		sleep(config.poll_interval);
-        main_daemon_loop(config, old_filenames, new_filenames);
-	}*/
-
-	//free(old_filenames);
-	//free(new_filenames);
 
 	inotify_rm_watch(fd, wd);
 	close(fd);
     close_logger();
 	return (0);
 }
-
-/*
-void main_daemon_loop(tcdh_config_t config, char **old_filenames, char **new_filenames) {
-	poll_for_new_files(config, old_filenames, new_filenames);
-}*/

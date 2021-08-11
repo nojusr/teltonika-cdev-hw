@@ -64,6 +64,7 @@ tcdh_config_t tcdh_read_config(char *path) {
         throw_config_error(cfg, "Could not find value: dir_to_watch\n");
     }
 
+    /*
     // read types_to_watch
     cfg_setting_buf = config_lookup(&cfg, "types_to_watch"); // get the setting object for "types_to_watch"
     if (cfg_setting_buf != NULL) { // check if setting object was found (config_lookup returns null on bad condition)
@@ -82,7 +83,7 @@ tcdh_config_t tcdh_read_config(char *path) {
         }
     } else {
         throw_config_error(cfg, "Could not find value: types_to_watch");
-    }
+    }*/
 
     // dependant on MAX_CATEGORY_COUNT, will need to de-hardcode later.
     tcdh_config_read_category(cfg, DOCUMENT_ID, output.document_types);
@@ -153,6 +154,8 @@ void tcdh_print_config_debug(tcdh_config_t config) {
     printf("config debug:\n");
     printf("watch dir: %s\n", config.watch_dir_path);
     printf("polling interval: %d\n", config.poll_interval);
+    
+    /*
     printf("types_to_watch: \n");
     for (int i = 0; i < MAX_CATEGORY_COUNT; i++) { 
         printf("%s\n", config.types_to_watch[i]);
@@ -160,7 +163,7 @@ void tcdh_print_config_debug(tcdh_config_t config) {
         if (config.types_to_watch[i+1] == NULL || strcmp(config.types_to_watch[i+1], "") == 0) { 
             break;
         }
-    }
+    }*/
 
     printf("%s:\n", AUDIO_ID);
     tcdh_print_str_arr_debug(config.audio_types);
